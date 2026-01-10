@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: foodgram
+data:
+  DB_HOST: db-sts-0.db-service.foodgram.svc.cluster.local
+  DB_PORT: "5432"
+  DEBUG: "True"
+  ALLOWED_HOSTS: "*"
+  STATIC_ROOT: "/staticfiles/static"  
+  MEDIA_ROOT: "/app/media"

@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: foodgram-ingress
+  namespace: foodgram
+spec:
+  tls:
+  - hosts:
+    - foodgram.loc
+    - alhost.ru
+    secretName: foodgram-tls
+  rules:
+  - host: foodgram.loc
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx-service
+            port:
+              number: 80
+  - host: alhost.ru
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx-service
+            port:
+              number: 80

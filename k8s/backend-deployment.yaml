@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deploy
+  namespace: foodgram
+
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: backend-pod
+  template:
+    metadata:
+      labels:
+        app: backend-pod
+    spec:
+      initContainers:
+        - name: static-collector-pod
+          image: mrilki/foodgram_backend:latest
+          envFrom:
+          - configMapRef:
+              name: app-config
+          - secretRef:
+              name: db-secrets
+          command: ["/bin/sh", "-c"]
+          args:
+          - |
+            echo "Running collectstatic and loading ingredients..." &&
+            python manage.py collectstatic --noinput &&
+            python manage.py load_ingredients --file /app/ingredients.csv --format csv || echo ' Already loaded or skipped'
+          volumeMounts:
+            - name: collected-static
+              mountPath: /staticfiles/static
+      containers:
+        - name: backend-pod
+          image: mrilki/foodgram_backend:latest
+          envFrom:
+            - configMapRef:
+                name: app-config
+            - secretRef:
+                name: db-secrets
+          ports:
+            - containerPort: 8000
+          volumeMounts:  
+            - name: collected-static
+              mountPath: /staticfiles/static
+            - name: media-storage       
+              mountPath: /app/media  
+      volumes:
+        - name: collected-static
+          persistentVolumeClaim:
+            claimName: collected-pvc
+        - name: media-storage       
+          persistentVolumeClaim:
+            claimName: media-pvc
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+ 

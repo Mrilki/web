@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrations-job
+  namespace: foodgram
+spec:
+  # Удалить job через 1 час после завершения
+  ttlSecondsAfterFinished: 3600
+  # Максимум 3 попытки при ошибке
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: migrations
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: migrations
+        image: mrilki/foodgram_backend:latest
+        envFrom:
+        - configMapRef:
+            name: app-config
+        - secretRef:
+            name: db-secrets
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          python manage.py migrate --noinput &&
+          echo "✅ Migrations completed successfully"
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "100m"

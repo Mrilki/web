@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-pod
+  namespace: foodgram
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25.4-alpine
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: nginx-conf
+          mountPath: /etc/nginx/conf.d/default.conf
+          subPath: default.conf
+        - name: static-volume      
+          mountPath: /usr/share/nginx/html
+        - name: collected-static
+          mountPath: /collected-static
+        - name: media-storage      
+          mountPath: /media
+      volumes:
+      - name: nginx-conf
+        configMap:
+          name: nginx-config
+      - name: static-volume
+        persistentVolumeClaim:
+          claimName: static-pvc
+      - name: collected-static
+        persistentVolumeClaim:
+          claimName: collected-pvc
+      - name: media-storage
+        persistentVolumeClaim:
+          claimName: media-pvc

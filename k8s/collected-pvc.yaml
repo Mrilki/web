@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: collected-pvc
+  namespace: foodgram
+spec:
+  accessModes: 
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 200Mi
+  storageClassName: ""
+  volumeName: collected-static-pv

@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db-sts
+  namespace: foodgram
+spec:
+  serviceName: db-service
+  replicas: 2
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: bitnami/postgresql:latest
+        env:
+        - name: POSTGRESQL_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: db-secrets
+              key: POSTGRES_USER
+        - name: POSTGRESQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-secrets
+              key: POSTGRES_PASSWORD
+        - name: POSTGRESQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: db-secrets
+              key: POSTGRES_DB
+        - name: POSTGRESQL_REPLICATION_USER
+          value: repl_user
+        - name: POSTGRESQL_REPLICATION_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-secrets
+              key: POSTGRES_REPLICATION_PASSWORD
+        ports:
+        - name: postgresql
+          containerPort: 5432
+          protocol: TCP
+        volumeMounts:
+        - name: db-storage
+          mountPath: /bitnami/postgresql
+  volumeClaimTemplates:
+      - metadata:
+          name: db-storage
+        spec:
+          accessModes: 
+          - "ReadWriteOnce"
+          storageClassName: standard
+          resources:
+            requests:
+              storage: 1Gi
