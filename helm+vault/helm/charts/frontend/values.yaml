@@ -1,0 +1,25 @@
+fullnameOverride: frontend
+
+persistence:
+  static:
+    size: "1Gi"
+    storageClassName: ""
+    hostPath: "/data/static"
+    accessModes: ReadWriteOnce
+
+deployment:
+  replicas: 1
+  image:
+    name: mrilki/foodgram_frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  placeholder:
+    image: alpine
+    command: ["sleep", "3600"]
+  pvc:
+    static:
+      name: static-storage
+      mountPath: /static
+  strategy:
+    type: RollingUpdate
+    maxUnavailable: 0

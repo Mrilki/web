@@ -1,0 +1,77 @@
+fullnameOverride: backend
+
+secret:
+  SECRET_KEY: 'c!l_@ps)i1*szqrxt*j)ljgicvo_n55b$(rkkuz(-369evb1!u'
+
+config:
+  DB_HOST: "db-sts-0.db-service.foodgram.svc.cluster.local"
+  DB_PORT: "5432"
+  DEBUG: "True"
+  ALLOWED_HOSTS: "*"
+  STATIC_ROOT: "/staticfiles/static"
+  MEDIA_ROOT: "/app/media"
+
+service:
+  type: NodePort
+  ports: 
+    protocol: TCP
+    port: 80
+    targetPort: 8000
+
+persistence:
+  collected:
+    size: "200Mi"
+    storageClassName: ""
+    hostPath: "/data/collected-static"
+    accessModes: ReadWriteOnce
+  media:
+    size: "2Gi"
+    storageClassName: ""
+    hostPath: "/data/media"
+    accessModes: ReadWriteOnce
+
+migrations:
+  backoffLimit: 50
+  ttlSecondsAfterFinished: 3600
+  restartPolicy: OnFailure
+  resources:
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+dbSecretName: "db-secrets"
+dbSecretEnv:
+    POSTGRES_USER: POSTGRES_USER
+    POSTGRES_PASSWORD: POSTGRES_PASSWORD
+    POSTGRES_DB: POSTGRES_DB
+
+
+deployment:
+  replicas: 3
+  image:
+    name: mrilki/foodgram_backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  pvc:
+    static:
+      name: collected-static
+      mountPath: /staticfiles/static
+    media:
+      name: media-storage
+      mountPath: /app/media
+  strategy:
+    type: RollingUpdate
+    maxUnavailable: 1 
+  env:
+    secret:
+      SECRET_KEY: SECRET_KEY
+    config:
+      DB_HOST: DB_HOST
+      DB_PORT: DB_PORT
+      DEBUG: DEBUG
+      ALLOWED_HOSTS: ALLOWED_HOSTS
+      STATIC_ROOT: STATIC_ROOT
+      MEDIA_ROOT: MEDIA_ROOT
+  ports: 8000

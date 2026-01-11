@@ -1,0 +1,58 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "backend.fullname" . }}-migrations
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "backend.labels" . | nindent 4 }}
+spec:
+  ttlSecondsAfterFinished: {{ .Values.migrations.ttlSecondsAfterFinished }}
+  backoffLimit: {{ .Values.migrations.backoffLimit }}
+  template:
+    metadata:
+      labels:
+{{ include "backend.labels" . | indent 8 }}
+    spec:
+      restartPolicy: {{ .Values.migrations.restartPolicy }}
+      containers:
+        - name: migrations
+          {{- with .Values.deployment.image }}
+          image: {{ printf "%s:%s" .name .tag }}
+          imagePullPolicy: {{ .pullPolicy | quote }}  
+          {{- end }}        
+          env:
+            {{- range $key, $val := .Values.deployment.env.config }}
+            - name: {{ $key }}
+              valueFrom: 
+                configMapKeyRef:
+                  name: {{ include "backend.fullname" $ }}-config
+                  key: {{ $val }}
+            {{- end }}
+            {{- range $key, $val := .Values.deployment.env.secret }}
+            - name: {{ $key }}
+              valueFrom: 
+                secretKeyRef:
+                  name: {{ include "backend.fullname" $ }}-secrets
+                  key: {{ $val }}
+            {{- end }}
+            {{- range $key, $val := .Values.dbSecretEnv  }}
+            - name: {{ $key }}
+              valueFrom: 
+                secretKeyRef:
+                  name: {{ $.Values.dbSecretName }}
+                  key: {{ $val }}
+            {{- end }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              python manage.py migrate --noinput &&
+              echo "✅ Migrations completed successfully"
+          {{- with .Values.migrations.resources }}
+          resources:
+            limits:
+              memory: {{ .limits.memory }}
+              cpu: {{ .limits.cpu }}
+            requests:
+              memory: {{ .requests.memory }}
+              cpu: {{ .requests.cpu }}
+          {{- end -}}

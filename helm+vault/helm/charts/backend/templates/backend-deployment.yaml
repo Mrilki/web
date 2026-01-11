@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "backend.fullname" . }}-deploy
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "backend.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.deployment.replicas }}
+  selector:
+    matchLabels:
+{{ include "backend.selectorLabels" . | indent 6 }}
+  template:
+    metadata:
+      labels:
+{{ include "backend.selectorLabels" . | indent 8 }}
+    spec:
+      initContainers:
+        - name: static-collector-pod
+          {{- with .Values.deployment.image }}
+          image: {{ printf "%s:%s" .name .tag }}
+          imagePullPolicy: {{ .pullPolicy | quote }}  
+          {{- end }}        
+          env:
+            {{- range $key, $val := .Values.deployment.env.config }}
+            - name: {{ $key }}
+              valueFrom: 
+                configMapKeyRef:
+                  name: {{ include "backend.fullname" $ }}-config
+                  key: {{ $val }}
+            {{- end }}
+            {{- range $key, $val := .Values.deployment.env.secret }}
+            - name: {{ $key }}
+              valueFrom: 
+                secretKeyRef:
+                  name: {{ include "backend.fullname" $ }}-secrets
+                  key: {{ $val }}
+            {{- end }}
+            {{- range $key, $val := .Values.dbSecretEnv  }}
+            - name: {{ $key }}
+              valueFrom: 
+                secretKeyRef:
+                  name: {{ $.Values.dbSecretName }}
+                  key: {{ $val }}
+            {{- end }}
+          command: ["/bin/sh", "-c"]
+          args:
+          - |
+            echo "Running collectstatic and loading ingredients..." &&
+            python manage.py collectstatic --noinput &&
+            python manage.py load_ingredients --file /app/ingredients.csv --format csv || echo ' Already loaded or skipped'
+          volumeMounts:
+            - name: {{ .Values.deployment.pvc.static.name }}
+              mountPath: {{ .Values.deployment.pvc.static.mountPath }}
+      containers:
+        - name: backend-pod
+          {{- with .Values.deployment.image }}
+          image: {{ printf "%s:%s" .name .tag }}
+          imagePullPolicy: {{ .pullPolicy | quote }}  
+          {{- end }}   
+          env:
+            {{- range $key, $val := .Values.deployment.env.config }}
+            - name: {{ $key }}
+              valueFrom: 
+                configMapKeyRef:
+                  name: {{ include "backend.fullname" $ }}-config
+                  key: {{ $val }}
+            {{- end }}
+            {{- range $key, $val := .Values.deployment.env.secret }}
+            - name: {{ $key }}
+              valueFrom: 
+                secretKeyRef:
+                  name: {{ include "backend.fullname" $ }}-secrets
+                  key: {{ $val }}
+            {{- end }}
+            {{- range $key, $val := .Values.dbSecretEnv  }}
+            - name: {{ $key }}
+              valueFrom: 
+                secretKeyRef:
+                  name: {{ $.Values.dbSecretName }}
+                  key: {{ $val }}
+            {{- end }}
+          ports:
+            - containerPort: {{ .Values.deployment.ports }}
+      {{- with .Values.deployment.pvc }}
+          volumeMounts:  
+            - name: {{ .static.name }}
+              mountPath: {{ .static.mountPath }}
+            - name: {{ .media.name }}
+              mountPath: {{ .media.mountPath }}
+      volumes:
+        - name: {{ .static.name }}
+          persistentVolumeClaim:
+            claimName: {{ include "backend.fullname" $ }}-collected-pvc
+        - name: {{ .media.name }}       
+          persistentVolumeClaim:
+            claimName: {{ include "backend.fullname" $ }}-media-pvc        
+      {{- end }}
+  strategy:
+    type: {{ .Values.deployment.strategy.type }}
+    rollingUpdate:
+      maxUnavailable: {{ .Values.deployment.strategy.maxUnavailable }}
+ 

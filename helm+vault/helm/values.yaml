@@ -1,0 +1,11 @@
+global:
+  secret:
+    name: "db-secrets"
+
+ingress:
+  serviceName: nginx-service
+  servicePort: 80
+  tlsSecret: foodgram-tls
+  hosts:
+    - foodgram.loc
+    - alhost.ru

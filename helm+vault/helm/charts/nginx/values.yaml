@@ -1,0 +1,29 @@
+fullnameOverride: nginx
+
+service:
+  type: ClusterIP
+  ports:
+    port: 80
+    targetPort: 80
+
+deployment:
+  replicas: 1
+  image:
+    name: nginx
+    tag: 1.25.4-alpine
+    pullPolicy: IfNotPresent
+  strategy:
+    type: RollingUpdate
+    maxUnavailable: 0
+
+config:
+  backendServiceName: backend-service
+  clientMaxBodySize: 10M
+
+pvc:
+  static:
+    name: frontend-static-pvc
+  collected:
+    name: backend-collected-pvc
+  media:
+    name: backend-media-pvc

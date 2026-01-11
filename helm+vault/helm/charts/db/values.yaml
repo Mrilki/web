@@ -1,0 +1,36 @@
+fullnameOverride: db
+secret:
+  POSTGRES_USER: django_user
+  POSTGRES_PASSWORD: secretpassword
+  POSTGRES_DB: django
+  POSTGRES_REPLICATION_PASSWORD: mySuperReplicationPass123!
+  POSTGRESQL_REPLICATION_USER: repl_user
+
+service:
+  type: ClusterIP
+  ports: 
+    name: postgresql
+    port: 5432
+    targetPort: postgresql
+    protocol: TCP 
+
+statefulSet:
+  replicas: 2
+  image:
+    name: bitnami/postgresql
+    tag: latest
+    pullPolicy: IfNotPresent
+  pvc:
+    name: db-storage
+    mountPath: /bitnami/postgresql
+    accessModes: ReadWriteOnce
+    storage: 1Gi
+    storageClassName: standard
+  env:
+    secret:
+      POSTGRESQL_USERNAME: POSTGRES_USER
+      POSTGRESQL_PASSWORD: POSTGRES_PASSWORD
+      POSTGRESQL_DATABASE: POSTGRES_DB
+      POSTGRESQL_REPLICATION_USER: POSTGRESQL_REPLICATION_USER
+      POSTGRESQL_REPLICATION_PASSWORD: POSTGRES_REPLICATION_PASSWORD
+      

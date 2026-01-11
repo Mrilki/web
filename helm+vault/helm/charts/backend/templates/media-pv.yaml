@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "backend.fullname" . }}-media-pv
+  labels:
+{{ include "backend.labels" . | indent 4 }}
+spec:
+  {{- with .Values.persistence.media }}
+  capacity:
+    storage: {{ .size | quote }}
+  accessModes: 
+  - {{ .accessModes | quote }}
+  storageClassName: {{ .storageClassName | quote }}
+  hostPath:
+    path: {{ .hostPath | quote }} 
+  {{- end }}
+  

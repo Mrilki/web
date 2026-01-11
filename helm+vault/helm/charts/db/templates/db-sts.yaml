@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "db.fullname" . }}-sts
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "db.labels" . | indent 4 }}
+spec:
+  serviceName: {{ include "db.fullname" . }}-service
+  replicas: {{ .Values.statefulSet.replicas }}
+  selector:
+    matchLabels:
+{{ include "db.selectorLabels" . | indent 6 }}
+  template:
+    metadata:
+      labels:
+{{ include "db.selectorLabels" . | indent 8 }}
+    spec:
+      containers:
+      - name: postgres
+        {{- with .Values.statefulSet.image }}
+        image: {{ printf "%s:%s" .name .tag }}
+        imagePullPolicy: {{ .pullPolicy | quote }}
+        {{- end }}
+        env:
+        {{- range $key, $val := .Values.statefulSet.env.secret }}
+        - name: {{ $key }}
+          valueFrom: 
+            secretKeyRef:
+              name: {{ include "db.secretsName" $ }}
+              key: {{ $val }}
+        {{- end }}
+        ports:
+        {{- with .Values.service.ports }}
+        - name: {{ .name }}
+          containerPort: {{ .port }}
+          protocol: {{ .protocol }}
+        {{- end }}
+
+        volumeMounts:
+        - name: {{ .Values.statefulSet.pvc.name }}
+          mountPath: {{ .Values.statefulSet.pvc.mountPath }}
+  volumeClaimTemplates:
+      - metadata:
+          name: {{ .Values.statefulSet.pvc.name }}
+        spec:
+          accessModes: 
+          - {{ .Values.statefulSet.pvc.accessModes | quote}}
+          storageClassName: {{ .Values.statefulSet.pvc.storageClassName | quote }}
+          resources:
+            requests:
+              storage: {{ .Values.statefulSet.pvc.storage }}

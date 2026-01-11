@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nginx.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "nginx.labels" . | indent 4 }}
+data:
+  default.conf: |
+    server {
+        listen 80;
+        client_max_body_size {{ .Values.config.clientMaxBodySize }};
+
+        location /api/ {
+            proxy_pass http://{{ .Values.config.backendServiceName }};
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+
+        location /admin/ {
+            proxy_pass http://{{ .Values.config.backendServiceName }};
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+
+        location /static/admin/ {
+            alias /collected-static/admin/;
+        }
+
+        location /static/rest_framework/ {
+            alias /collected-static/rest_framework/;
+        }
+
+        location /static/ {
+            root /usr/share/nginx/html;
+        }
+
+        location /media/ {
+            alias /media/;
+        }
+
+        location / {
+            root /usr/share/nginx/html;
+            try_files $uri $uri/ /index.html;
+        }
+    }
