@@ -1,0 +1,10 @@
+service:
+  port: 5672
+
+config:
+  port: "5672"
+  host: "rabbitmq-foodgram.foodgram.svc.cluster.local"
+
+secret:
+  username: user
+  password: "123"

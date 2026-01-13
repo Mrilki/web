@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "flower.fullname" . }}-ingress
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "flower.labels" . | indent 4 }}
+spec:
+  tls:
+  - hosts:
+    - flower.localhost.ru
+    secretName: {{ .Values.global.ingress.tlsSecret }}
+  rules:
+  - host: flower.localhost.ru
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ include "flower.fullname" . }}-service
+            port:
+              number: 80
+

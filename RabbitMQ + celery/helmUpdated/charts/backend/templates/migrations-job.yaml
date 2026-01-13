@@ -1,0 +1,61 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "backend.fullname" . }}-migrations
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "backend.labels" . | nindent 4 }}
+spec:
+  ttlSecondsAfterFinished: {{ .Values.migrations.ttlSecondsAfterFinished }}
+  backoffLimit: {{ .Values.migrations.backoffLimit }}
+  template:
+    metadata:
+      labels:
+{{ include "backend.labels" . | indent 8 }}
+    spec:
+      restartPolicy: {{ .Values.migrations.restartPolicy }}
+      containers:
+        - name: migrations
+          {{- with .Values.global.images.api }}
+          image: {{ printf "%s:%s" .name .tag }}
+          imagePullPolicy: {{ .pullPolicy | quote }}  
+          {{- end }}
+          command: {{ .Values.deployment.command | toJson }}
+          args: {{ .Values.deployment.args | toJson }}        
+          env:
+            {{- range $key, $val := .Values.deployment.env.value }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+            {{- end }}
+            {{- range $alias, $mapping := .Values.deployment.env.config }}
+            {{- range $key, $val := $mapping }}
+            - name: {{ $key }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ index $.Values.global.config $alias }}
+                  key: {{ $val }}
+            {{- end }}
+            {{- end }}
+            {{- range $alias, $mapping := .Values.deployment.env.secret }}
+            {{- range $key, $val := $mapping }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ index $.Values.global.secret $alias }}
+                  key: {{ $val }}
+            {{- end }}
+            {{- end }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              python manage.py migrate --noinput &&
+              echo "✅ Migrations completed successfully"
+          {{- with .Values.migrations.resources }}
+          resources:
+            limits:
+              memory: {{ .limits.memory }}
+              cpu: {{ .limits.cpu }}
+            requests:
+              memory: {{ .requests.memory }}
+              cpu: {{ .requests.cpu }}
+          {{- end -}}

@@ -1,0 +1,85 @@
+fullnameOverride: backend
+
+secret:
+  SECRET_KEY: 'c!l_@ps)i1*szqrxt*j)ljgicvo_n55b$(rkkuz(-369evb1!u'
+  apiCocktailDB: apiKey
+  apiMealDB: apiKey
+
+config:
+  DB_HOST: "db-sts-0.db-service.foodgram.svc.cluster.local"
+  DB_PORT: "5432"
+  DEBUG: "True"
+  ALLOWED_HOSTS: "*"
+  STATIC_ROOT: "/staticfiles/static"
+  MEDIA_ROOT: "/app/media"
+
+service:
+  type: NodePort
+  ports: 
+    protocol: TCP
+    port: 80
+    targetPort: 8000
+
+persistence:
+  collected:
+    size: "200Mi"
+    storageClassName: ""
+    hostPath: "/data/collected-static"
+    accessModes: ReadWriteOnce
+  media:
+    size: "2Gi"
+    storageClassName: ""
+    hostPath: "/data/media"
+    accessModes: ReadWriteOnce
+
+migrations:
+  backoffLimit: 50
+  ttlSecondsAfterFinished: 3600
+  restartPolicy: OnFailure
+  resources:
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+deployment:
+  command: ["gunicorn"]
+  args: ["--bind", "0.0.0.0:8000", "foodgram.wsgi"]
+  replicas: 3
+  pvc:
+    static:
+      name: collected-static
+      mountPath: /staticfiles/static
+    media:
+      name: media-storage
+      mountPath: /app/media
+  strategy:
+    type: RollingUpdate
+    maxUnavailable: 1 
+  env:
+    secret:
+      backend: 
+        SECRET_KEY: SECRET_KEY
+        apiCocktailDB: apiCocktailDB
+        apiMealDB: apiMealDB
+      db:
+        POSTGRES_USER: POSTGRES_USER
+        POSTGRES_PASSWORD: POSTGRES_PASSWORD
+        POSTGRES_DB: POSTGRES_DB
+      rabbitmq:
+        BROKER_USER: username
+        BROKER_PASSWORD: password
+    config:
+      backend:
+        DEBUG: DEBUG
+        ALLOWED_HOSTS: ALLOWED_HOSTS
+        STATIC_ROOT: STATIC_ROOT
+        MEDIA_ROOT: MEDIA_ROOT
+      db:
+        DB_HOST: host
+        DB_PORT: port
+      rabbitmq:
+        BROKER_HOST: host
+        BROKER_PORT: port
+  ports: 8000

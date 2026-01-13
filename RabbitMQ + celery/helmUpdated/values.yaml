@@ -1,0 +1,23 @@
+global:
+  secret:
+    db: db-secrets
+    rabbitmq: rabbit-secrets
+    backend: backend-secrets
+  config:
+    db: db-config
+    rabbitmq: rabbit-config
+    backend: backend-config
+  
+  images:
+    api:
+      name: mrilki/foodgram_backend
+      tag: v5
+      pullPolicy: Always
+
+  ingress:
+    serviceName: nginx-service
+    servicePort: 80
+    tlsSecret: foodgram-tls
+    hosts:
+      - foodgram.loc
+      - alhost.ru

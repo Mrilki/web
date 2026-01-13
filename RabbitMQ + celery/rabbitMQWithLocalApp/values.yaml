@@ -1,0 +1,23 @@
+auth:
+  username: ref+vault://secrets/rabbitmq#/username
+  password: ref+vault://secrets/rabbitmq#/password
+
+ingress:
+  enabled: true
+  hosts:
+  - host: rabbitmq.localhost.ru 
+    paths:
+    - path: /
+      pathType: Prefix
+  className: nginx
+  tls: []
+
+services:
+  typy: LoadBalancer
+
+queueBalancing:
+  clusterFormation:
+    targetClusterSizeHint: "1"
+  quorumQueues:
+    continuousMembershipReconciliation:
+      targetGroupSize: "1"

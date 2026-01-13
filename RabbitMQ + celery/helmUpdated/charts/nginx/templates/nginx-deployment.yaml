@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nginx.fullname" . }}-deploy
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "nginx.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.deployment.replicas }}
+  selector:
+    matchLabels:
+{{ include "nginx.selectorLabels" . | indent 6 }}
+  template:
+    metadata:
+      labels:
+{{ include "nginx.selectorLabels" . | indent 8 }}
+    spec:
+      containers:
+      - name: nginx
+        {{- with .Values.deployment.image }}
+        image: {{ printf "%s:%s" .name .tag }}
+        imagePullPolicy: {{ .pullPolicy | quote }}
+        {{- end }}
+        ports:
+        - containerPort: {{ .Values.service.ports.targetPort }}
+        volumeMounts:
+        - name: nginx-conf
+          mountPath: /etc/nginx/conf.d/default.conf
+          subPath: default.conf
+        - name: static-volume
+          mountPath: /usr/share/nginx/html
+        - name: collected-static
+          mountPath: /collected-static
+        - name: media-storage
+          mountPath: /media
+      volumes:
+      - name: nginx-conf
+        configMap:
+          name: {{ include "nginx.fullname" . }}-config
+      - name: static-volume
+        persistentVolumeClaim:
+          claimName: {{ .Values.pvc.static.name }}
+      - name: collected-static
+        persistentVolumeClaim:
+          claimName: {{ .Values.pvc.collected.name }}
+      - name: media-storage
+        persistentVolumeClaim:
+          claimName: {{ .Values.pvc.media.name }}
+  strategy:
+    type: {{ .Values.deployment.strategy.type }}
+    rollingUpdate:
+      maxUnavailable: {{ .Values.deployment.strategy.maxUnavailable }}

@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "flower.fullname" . }}-deploy
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "flower.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.deployment.replicas }}
+  selector:
+    matchLabels:
+{{ include "flower.selectorLabels" . | indent 6 }}
+  template:
+    metadata:
+      labels:
+{{ include "flower.selectorLabels" . | indent 8 }}
+    spec: 
+      containers:
+        - name: flower-pod
+          {{- with .Values.global.images.api }}
+          image: {{ printf "%s:%s" .name .tag }}
+          imagePullPolicy: {{ .pullPolicy | quote }}  
+          {{- end }}   
+          command: {{ .Values.deployment.command | toJson }}
+          args: {{ .Values.deployment.args | toJson }}
+          env:
+            {{- range $key, $val := .Values.deployment.env.value }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+            {{- end }}
+            {{- range $alias, $mapping := .Values.deployment.env.config }}
+            {{- range $key, $val := $mapping }}
+            - name: {{ $key }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ index $.Values.global.config $alias }}
+                  key: {{ $val }}
+            {{- end }}
+            {{- end }}
+            {{- range $alias, $mapping := .Values.deployment.env.secret }}
+            {{- range $key, $val := $mapping }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ index $.Values.global.secret $alias }}
+                  key: {{ $val }}
+            {{- end }}
+            {{- end }}
+          ports:
+            - containerPort: {{ .Values.deployment.ports }}

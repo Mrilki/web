@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "backend.fullname" . }}-collected-pvc
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "backend.labels" . | indent 4 }}
+spec:
+  {{- with .Values.persistence.collected }}
+  accessModes: 
+  - {{ .accessModes | quote }}
+  resources:
+    requests:
+      storage: {{ .size | quote }}
+  storageClassName: {{ .storageClassName | quote }}  
+  {{- end }}
+  volumeName: {{ include "backend.fullname" . }}-collected-pv

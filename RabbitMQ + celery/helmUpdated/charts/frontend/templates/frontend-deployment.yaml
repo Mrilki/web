@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "frontend.fullname" . }}-deploy
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "frontend.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.deployment.replicas }}
+  selector:
+    matchLabels:
+{{ include "frontend.selectorLabels" . | indent 6 }}
+  template:
+    metadata:
+      labels:
+{{ include "frontend.selectorLabels" . | indent 8 }}
+    spec:
+      initContainers:
+      - name: builder-pod
+        {{- with .Values.deployment.image }}
+        image: {{ printf "%s:%s" .name .tag }}
+        imagePullPolicy: {{ .pullPolicy | quote }}
+        {{- end }}
+        command: ["sh", "-c"]
+        args:
+          - "npm run build && cp -r build/. /static/"
+        volumeMounts:
+        - name: {{ .Values.deployment.pvc.static.name }}
+          mountPath: {{ .Values.deployment.pvc.static.mountPath }}
+
+      containers:
+      - name: placeholder
+        {{- with .Values.deployment.placeholder }}
+        image: {{ .image }}
+        command: {{ .command | toJson }}
+        {{- end }}
+        volumeMounts:
+        - name: {{ .Values.deployment.pvc.static.name }}
+          mountPath: {{ .Values.deployment.pvc.static.mountPath }}
+
+      volumes:
+      - name: {{ .Values.deployment.pvc.static.name }}
+        persistentVolumeClaim:
+          claimName: {{ include "frontend.fullname" . }}-static-pvc
+  strategy:
+    type: {{ .Values.deployment.strategy.type }}
+    rollingUpdate:
+      maxUnavailable: {{ .Values.deployment.strategy.maxUnavailable }}

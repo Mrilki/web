@@ -1,0 +1,30 @@
+deployment:
+  replicas: 1
+  command: ["python", "-m", "celery"]
+  args: [ "-A", "foodgram.celery.app", "worker", "-l", "DEBUG" ]
+  env:
+    secret:
+      backend: 
+        SECRET_KEY: SECRET_KEY
+        apiCocktailDB: apiCocktailDB
+        apiMealDB: apiMealDB
+      db:
+        POSTGRES_USER: POSTGRES_USER
+        POSTGRES_PASSWORD: POSTGRES_PASSWORD
+        POSTGRES_DB: POSTGRES_DB
+      rabbitmq:
+        BROKER_USER: username
+        BROKER_PASSWORD: password
+    config:
+      backend:
+        DEBUG: DEBUG
+        ALLOWED_HOSTS: ALLOWED_HOSTS
+        STATIC_ROOT: STATIC_ROOT
+        MEDIA_ROOT: MEDIA_ROOT
+      db:
+        DB_HOST: host
+        DB_PORT: port
+      rabbitmq:
+        BROKER_HOST: host
+        BROKER_PORT: port
+  ports: 8000

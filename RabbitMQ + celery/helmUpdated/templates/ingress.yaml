@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "helm.fullname" . }}-ingress
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "helm.labels" . | indent 4 }}
+spec:
+  tls:
+  - hosts:
+    {{- range .Values.global.ingress.hosts }}
+    - {{ . }}
+    {{- end }}
+    secretName: {{ .Values.global.ingress.tlsSecret }}
+  rules:
+  {{- range .Values.global.ingress.hosts }}
+  - host: {{ . }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.global.ingress.serviceName }}
+            port:
+              number: {{ $.Values.global.ingress.servicePort }}
+  {{- end }}
